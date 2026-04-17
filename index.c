@@ -26,14 +26,7 @@
 
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
-// Find an index entry by path (linear scan).
-IndexEntry* index_find(Index *index, const char *path) {
-    for (int i = 0; i < index->count; i++) {
-        if (strcmp(index->entries[i].path, path) == 0)
-            return &index->entries[i];
-    }
-    return NULL;
-}
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
 
 // Remove a file from the index.
 // Returns 0 on success, -1 if path not in index.
