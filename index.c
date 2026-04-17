@@ -24,9 +24,19 @@
 #include <unistd.h>
 #include <dirent.h>
 
+// Forward declaration (implemented in object.c)
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
-int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+// Find an index entry by path (linear scan).
+IndexEntry* index_find(Index *index, const char *path) {
+    for (int i = 0; i < index->count; i++) {
+        if (strcmp(index->entries[i].path, path) == 0)
+            return &index->entries[i];
+    }
+    return NULL;
+}
 
 // Remove a file from the index.
 // Returns 0 on success, -1 if path not in index.
@@ -154,7 +164,6 @@ int index_load(Index *index) {
     fclose(f);
     return 0;
 }
-
 // Save the index to .pes/index atomically.
 //
 // HINTS - Useful functions and syscalls:
@@ -165,6 +174,7 @@ int index_load(Index *index) {
 //   - rename                           : atomically moving the temp file over the old index
 //
 // Returns 0 on success, -1 on error.
+// Comparator for qsort — sorts IndexEntry by path lexicographically
 static int cmp_index_entries(const void *a, const void *b) {
     return strcmp(((const IndexEntry *)a)->path,
                   ((const IndexEntry *)b)->path);
@@ -178,7 +188,7 @@ int index_save(const Index *index) {
     if (!f) return -1;
 
     // Sort a copy by path (required for deterministic output)
-    IndexEntry sorted[MAX_INDEX_ENTRIES];
+    static IndexEntry sorted[MAX_INDEX_ENTRIES];
     memcpy(sorted, index->entries, (size_t)index->count * sizeof(IndexEntry));
     qsort(sorted, (size_t)index->count, sizeof(IndexEntry), cmp_index_entries);
 
@@ -199,6 +209,7 @@ int index_save(const Index *index) {
 
     return rename(tmp_path, INDEX_FILE); // Atomic replace
 }
+
 // Stage a file for the next commit.
 //
 // HINTS - Useful functions and syscalls:
